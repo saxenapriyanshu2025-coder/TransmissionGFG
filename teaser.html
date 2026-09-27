@@ -1,0 +1,102 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Anton;src:url(/node_modules/@fontsource/anton/files/anton-latin-400-normal.woff2)}
+@font-face{font-family:Mono;src:url(/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-600-normal.woff2)}
+@font-face{font-family:Grot;src:url(/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2)}
+*{margin:0;box-sizing:border-box}
+html,body{width:1280px;height:720px;overflow:hidden;background:#07060a;color:#f3ede4}
+.s{position:absolute;inset:0;display:grid;place-items:center;opacity:0}
+.mono{font-family:Mono;letter-spacing:.2em;text-transform:uppercase}
+.big{font-family:Anton;text-transform:uppercase;line-height:.85}
+#grain{position:absolute;inset:-50%;opacity:.08;z-index:50;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:g .3s steps(3) infinite}
+@keyframes g{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-2%)}}
+.bar{position:absolute;left:0;right:0;height:72px;background:#000;z-index:40}
+#bt{top:0}#bb{bottom:0}
+#hud{position:absolute;inset:92px 60px;z-index:41;font-size:13px;color:#8f8a97;display:flex;justify-content:space-between;align-items:flex-start}
+#hud b{color:#e8202a}
+canvas{position:absolute;inset:0}
+.panel{position:absolute;inset:0;display:grid;place-items:center;font-size:250px;visibility:hidden}
+.realm{font-size:200px;position:absolute;opacity:0}
+.heroes{display:flex;gap:6px;align-items:flex-end;height:470px}
+.heroes div{width:200px;height:100%;opacity:0}
+.heroes svg{width:100%;display:block}
+.flash{position:absolute;inset:0;background:#e8202a;opacity:0;z-index:30}
+.half{position:absolute;left:0;right:0;height:50%;background:#e8202a}
+</style></head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div class="s" id="s1"><div style="text-align:center"><div class="mono" style="font-size:18px;color:#e8202a" id="type"></div><div style="width:0;height:2px;background:#e8202a;margin:18px auto 0" id="scan"></div></div></div>
+<div id="panels">
+ <div class="panel big" style="background:#e8202a;color:#07060a">BUILD</div>
+ <div class="panel big" style="background:#07060a;color:#e8202a">BREAK</div>
+ <div class="panel big" style="background:#f3ede4;color:#07060a">HACK</div>
+ <div class="panel big" style="background:radial-gradient(circle,#e8202a 28%,transparent 30%) 0 0/16px 16px,#07060a;color:#f3ede4;text-shadow:8px 8px 0 #07060a">SHIP</div>
+</div>
+<div class="s" id="s3"><div style="text-align:center"><div class="mono" style="font-size:16px;color:#e8202a;margin-bottom:22px">Warning // multiverse unstable</div><div class="big" style="font-size:92px" id="dark">Six teams.<br>Six heroes.</div></div></div>
+<div class="s" id="s4"></div>
+<div class="s" id="s5"><div style="text-align:center"><div class="heroes" id="heroes"></div><div class="big" style="font-size:64px;margin-top:10px">Every team has a <span style="color:#e8202a">legend.</span></div></div></div>
+<div class="s" id="s6"><div style="text-align:center"><div class="mono" style="font-size:16px;margin-bottom:10px" id="pres">GFG Student Chapter · Bennett University presents</div><div class="big" style="font-size:236px;display:flex;justify-content:center" id="word"></div><div class="mono" style="font-size:20px;color:#ffc53d;margin-top:16px" id="date">Oct 24-25, 2026 · 24 hours · 6 realms</div></div></div>
+<div class="s" id="s7"><div style="text-align:center"><img id="emb" width="120" height="120" style="margin:0 auto 26px;display:block"><div class="big" style="font-size:84px">Join the <span style="color:#e8202a">Initiative.</span></div><div class="mono" style="font-size:15px;color:#8f8a97;margin-top:18px">Registration open now · Free entry</div></div></div>
+<div class="flash" id="flash"></div>
+<div class="bar" id="bt"></div><div class="bar" id="bb"></div>
+<div id="hud" class="mono"><span><b>●</b> REC · TRANSMISSION 026</span><span id="tc">00:00:00:00</span></div>
+<div id="grain"></div>
+<script src="/node_modules/gsap/dist/gsap.min.js"></script>
+<script type="module">
+const TEAMS=[
+ {id:'neural',name:'Neural',team:'Iron Man',color:'#ff3b30',domain:'AI and Machine Learning',img:'/src/assets/heroes/iron-man.webp',blend:true},
+ {id:'sentinel',name:'Sentinel',team:'Captain America',color:'#3b7bff',domain:'Cybersecurity',img:'/src/assets/heroes/captain-america.webp'},
+ {id:'titan',name:'Titan',team:'Thor',color:'#5fd0ff',domain:'Cloud, Infra and Web3',img:'/src/assets/heroes/thor.webp'},
+ {id:'pulse',name:'Pulse',team:'Black Panther',color:'#a26bff',domain:'HealthTech and Climate',img:'/src/assets/heroes/black-panther.webp'},
+ {id:'rift',name:'Rift',team:'Doctor Strange',color:'#ff8a1f',domain:'AR, VR and Games',img:'/src/assets/heroes/doctor-strange.webp'},
+ {id:'multiverse',name:'Multiverse',team:'Spider-Man',color:'#ff2d55',domain:'Open Innovation',img:'/src/assets/heroes/spider-man.webp'},
+];
+const T=Object.fromEntries(TEAMS.map(t=>[t.id,t]));
+const photo=(t,style='')=>`<img src="${t.img}" style="${style}${t.blend?';filter:none;mix-blend-mode:lighten;-webkit-mask-image:radial-gradient(ellipse 58% 52% at 62% 42%,#000 45%,transparent 100%);mask-image:radial-gradient(ellipse 58% 52% at 62% 42%,#000 45%,transparent 100%)':''}">`;
+document.getElementById('emb').src='/public/emblem.svg';
+const $=s=>document.querySelector(s);
+// realms
+$('#s4').innerHTML = TEAMS.map(r=>`<div class="realm" style="position:absolute;inset:0;opacity:0"><div style="position:absolute;right:6%;bottom:0;height:88%">${photo(r,'height:100%;width:auto;filter:drop-shadow(0 0 40px '+r.color+')')}</div><div class="big" style="position:absolute;left:8%;top:50%;transform:translateY(-50%);color:${r.color};font-size:170px;text-align:left"><div class="mono" style="font-size:22px;color:#f3ede4;letter-spacing:.5em;margin-bottom:10px">TEAM</div>${r.name}<div class="big" style="font-size:64px;color:#f3ede4;margin-top:6px"><span style="color:${r.color}">×</span> ${r.team}</div><div class="mono" style="font-size:18px;color:#f3ede4;margin-top:14px">${r.domain}</div></div></div>`).join('');
+$('#heroes').innerHTML = TEAMS.map(t=>`<div>${photo(t,'height:100%;width:100%;object-fit:contain;object-position:bottom;filter:drop-shadow(0 0 24px '+t.color+')')}</div>`).join('');
+$('#word').innerHTML = 'ASSEMBLE'.split('').map(c=>`<span style="display:inline-block">${c}</span>`).join('');
+// portal canvas
+const cv=$('#c'),x=cv.getContext('2d');let P=[],on=false,boost=0;
+for(let i=0;i<900;i++){const b=Math.random();P.push({a:Math.random()*6.28,r:200*(0.72+b*b*.55),s:.003+Math.random()*.007,c:['#e8202a','#ff4a3d','#ff7a1a','#ffc53d','#f3ede4'][(Math.random()*5)|0],z:.4+Math.random()*.8})}
+const portal={scale:0};
+function draw(){x.globalCompositeOperation='destination-out';x.fillStyle='rgba(0,0,0,.2)';x.fillRect(0,0,1280,720);x.globalCompositeOperation='lighter';
+ if(portal.scale>0.01){for(const p of P){p.a+=p.s*(1+boost*4);const r=p.r*portal.scale;x.globalAlpha=.35+p.z*.45;x.fillStyle=p.c;x.fillRect(640+Math.cos(p.a)*r,360+Math.sin(p.a)*r*.85,p.z*2,p.z*2)}}
+ x.globalAlpha=1;boost*=.96;requestAnimationFrame(draw)}
+draw();
+// timecode
+let f=0;setInterval(()=>{f++;const s=Math.floor(f/24);$('#tc').textContent=`00:00:${String(s).padStart(2,'0')}:${String(f%24).padStart(2,'0')}`},1000/24);
+const tl=gsap.timeline({paused:true,defaults:{ease:'expo.out'}});
+const txt='Incoming transmission';const o={n:0};
+tl.set('#s1',{opacity:1},0.2)
+ .to(o,{n:txt.length,duration:1.2,ease:'none',onUpdate:()=>$('#type').textContent=txt.slice(0,Math.round(o.n))+'_'},0.3)
+ .to('#scan',{width:520,duration:1.2,ease:'power2.inOut'},0.5)
+ .to('#s1',{opacity:0,duration:.2},2.0);
+document.querySelectorAll('.panel').forEach((p,i)=>{tl.set(p,{visibility:'visible'},2.1+i*.16);tl.set(p,{visibility:'hidden'},2.1+(i+1)*.16)});
+tl.to(portal,{scale:1.25,duration:2.5,ease:'expo.out',onStart:()=>boost=1},2.75)
+ .fromTo('#s3',{opacity:0,scale:1.15},{opacity:1,scale:1,duration:1},3.0)
+ .to('#s3',{opacity:0,duration:.4},5.4)
+ .to(portal,{scale:.6,duration:1},5.4)
+ .set('#s4',{opacity:1},5.6);
+document.querySelectorAll('.realm').forEach((r,i)=>{const t=5.7+i*.62;tl.fromTo(r,{opacity:0,scale:1.6,filter:'blur(12px)'},{opacity:1,scale:1,filter:'blur(0px)',duration:.35,ease:'power4.out',onStart:()=>boost=1},t).to(r,{opacity:0,scale:.9,duration:.2},t+.45)});
+tl.to(portal,{scale:0,duration:.6},9.4)
+ .set('#s5',{opacity:1},9.5)
+ .fromTo('#heroes div',{opacity:0,y:120},{opacity:1,y:0,stagger:.12,duration:.9},9.5)
+ .to('#s5',{opacity:0,duration:.3},12.6)
+ .to('#flash',{opacity:1,duration:.06},12.9).to('#flash',{opacity:0,duration:.5},12.96)
+ .set('#s6',{opacity:1},12.9)
+ .fromTo('#word span',{yPercent:120,opacity:0,rotate:8},{yPercent:0,opacity:1,rotate:0,stagger:.06,duration:1},12.95)
+ .fromTo('#pres',{opacity:0},{opacity:1,duration:.8},13.6)
+ .fromTo('#date',{opacity:0,y:20},{opacity:1,y:0,duration:.8},13.9)
+ .to(portal,{scale:1.6,duration:3,ease:'power2.out',onStart:()=>boost=1},12.9)
+ .to('#s6',{opacity:0,duration:.4},16.2)
+ .to(portal,{scale:0,duration:.6},16.2)
+ .fromTo('#s7',{opacity:0,scale:.92},{opacity:1,scale:1,duration:1},16.6)
+ .to('#bt',{height:360,duration:.8,ease:'expo.inOut'},19.2).to('#bb',{height:360,duration:.8,ease:'expo.inOut'},19.2);
+window.startTeaser=()=>{f=0;tl.play(0)};
+document.fonts.ready.then(()=>{window.ready=true});
+</script></body></html>
